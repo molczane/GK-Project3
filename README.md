@@ -6,8 +6,6 @@ This project is mainly focused on colors. Expecially RBG to CMYK conversion and 
 
 1. Clone the repository in IntelliJ IDEA
 2. Run the following command in the terminal
-3. Run the project
-
 ```bash
 ./gradlew run
 ```
