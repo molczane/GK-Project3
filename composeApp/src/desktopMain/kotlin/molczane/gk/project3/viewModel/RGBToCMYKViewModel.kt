@@ -52,17 +52,22 @@ class RGBToCMYKViewModel : ViewModel() {
         }
     }
 
-    fun updateBezierPoint(color: Color, pointIndex: Int, newPoint: Offset) {
-        // Aktualizacja punktu kontrolnego krzywej
-        val updatedCurves = _state.value.bezierCurves.toMutableList()
-        val curveIndex = colorToIndex(color)
-        updatedCurves[curveIndex] = updatedCurves[curveIndex].copy(
-            controlPoints = updatedCurves[curveIndex].controlPoints.toMutableList().apply {
-                this[pointIndex] = newPoint
+    fun updateControlPoint(curve: BezierCurve, pointIndex: Int, newOffset: Offset) {
+        val updatedCurves = _state.value.bezierCurves.map { currentCurve ->
+            if (currentCurve == curve) {
+                currentCurve.copy(
+                    controlPoints = currentCurve.controlPoints.toMutableList().apply {
+                        this[pointIndex] = newOffset
+                    }
+                )
+            } else {
+                currentCurve
             }
-        )
+        }
+
         _state.value = _state.value.copy(bezierCurves = updatedCurves)
     }
+
 
     private fun processToGrayscale(image: ImageBitmap): ImageBitmap {
         // Logika konwersji obrazu na czarno-biały
@@ -114,9 +119,9 @@ class RGBToCMYKViewModel : ViewModel() {
             BezierCurve(
                 controlPoints = listOf(
                     Offset(0f, 0f),   // Początek
-                    Offset(0.1f, 0.2f), // Punkt kontrolny 1
-                    Offset(0.8f, 0.7f), // Punkt kontrolny 2
-                    Offset(1f, 1f)    // Koniec
+                    Offset(0.1f, 0.0f), // Punkt kontrolny 1
+                    Offset(0.8f, 0.0f), // Punkt kontrolny 2
+                    Offset(1f, 0f)    // Koniec
                 ),
                 color = Color.Black
             )
@@ -134,18 +139,56 @@ class RGBToCMYKViewModel : ViewModel() {
 
 
     fun rgbToCmyk(r: Float, g: Float, b: Float): CMYK {
-        val c = 1 - r
-        val m = 1 - g
-        val y = 1 - b
-        val k = minOf(c, m, y)
+        // Normalize RGB values to the range [0, 1]
+        val rPrime = r
+        val gPrime = g
+        val bPrime = b
+
+        // Calculate Black (K) component
+        val k = 1 - maxOf(rPrime, gPrime, bPrime)
+
+        // Prevent division by zero when K is 1
+        val denominator = 1 - k
+        val cyan = if (denominator == 0f) 0f else (1 - rPrime - k) / denominator
+        val magenta = if (denominator == 0f) 0f else (1 - gPrime - k) / denominator
+        val yellow = if (denominator == 0f) 0f else (1 - bPrime - k) / denominator
 
         return CMYK(
-            cyan = (c - k) / (1 - k),
-            magenta = (m - k) / (1 - k),
-            yellow = (y - k) / (1 - k),
+            cyan = cyan,
+            magenta = magenta,
+            yellow = yellow,
             black = k
         )
     }
+
+
+    fun cmykToRgb(c: Float, m: Float, y: Float, k: Float): RGB {
+        // Ensure input values are in the range [0, 1]
+        val cyan = c.coerceIn(0f, 1f)
+        val magenta = m.coerceIn(0f, 1f)
+        val yellow = y.coerceIn(0f, 1f)
+        val black = k.coerceIn(0f, 1f)
+
+        // Calculate RGB values
+        val r = 255 * (1 - cyan) * (1 - black)
+        val g = 255 * (1 - magenta) * (1 - black)
+        val b = 255 * (1 - yellow) * (1 - black)
+
+        // Return the result as an RGB object
+        return RGB(
+            red = r.toInt(),
+            green = g.toInt(),
+            blue = b.toInt()
+        )
+    }
+
+    // Data class for RGB representation
+    data class RGB(
+        val red: Int,
+        val green: Int,
+        val blue: Int
+    )
+
 
     fun convertRGBToCMYK(
         image: ImageBitmap,
@@ -182,11 +225,16 @@ class RGBToCMYKViewModel : ViewModel() {
                 val yellow = evaluateBezier(bezierCurves[2], cmyk.yellow)
                 val black = evaluateBezier(bezierCurves[3], cmyk.black)
 
+                val cyanRGB = cmykToRgb(cyan, 0f, 0f, 0f)
+                val magentaRGB = cmykToRgb(0f, magenta, 0f, 0f)
+                val yellowRGB = cmykToRgb(0f, 0f, yellow, 0f)
+                val blackRGB = cmykToRgb(0f, 0f, 0f, black)
+
                 // Rysowanie pikseli na kanałach C, M, Y, K
-                drawPixel(cyanBitmap, x, y, Color(cyan, cyan, cyan))
-                drawPixel(magentaBitmap, x, y, Color(magenta, magenta, magenta))
-                drawPixel(yellowBitmap, x, y, Color(yellow, yellow, yellow))
-                drawPixel(blackBitmap, x, y, Color(black, black, black))
+                drawPixel(cyanBitmap, x, y, Color(cyanRGB.red, cyanRGB.blue, cyanRGB.green))
+                drawPixel(magentaBitmap, x, y, Color(magentaRGB.red, magentaRGB.blue, magentaRGB.green))
+                drawPixel(yellowBitmap, x, y, Color(yellowRGB.red, yellowRGB.blue, yellowRGB.green))
+                drawPixel(blackBitmap, x, y,Color(blackRGB.red, blackRGB.blue, blackRGB.green))
             }
         }
 

@@ -11,12 +11,13 @@ fun main() = application {
         onCloseRequest = ::exitApplication,
         title = "GK-Project3",
     ) {
-        ModificationApp(viewModel)
+        CMYKImagesView(viewModel)
     }
     Window(
         onCloseRequest = ::exitApplication,
         title = "GK-Project3",
     ) {
-        CMYKImagesView(viewModel)
+        ModificationApp(viewModel)
     }
+
 }
