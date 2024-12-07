@@ -1,11 +1,13 @@
-This is a Kotlin Multiplatform project targeting Desktop.
+## This is project for Computer Graphics class.
 
-* `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - `commonMain` is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    `iosMain` would be the right folder for such calls.
+This project is mainly focused on colors. Expecially RBG to CMYK conversion and vice versa.
 
+### How to run the project?
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…# GK-Project3
+1. Clone the repository in IntelliJ IDEA
+2. Run the following command in the terminal
+3. Run the project
+
+```bash
+./gradlew run
+```
