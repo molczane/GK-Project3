@@ -11,6 +11,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -27,7 +28,7 @@ import molczane.gk.project3.viewModel.RGBToCMYKViewModel
 
 @Composable
 fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
-    val state = viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsState()
 
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -58,9 +59,43 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(2f)
-                        .background(Color.Gray)
+                        .background(Color.LightGray)
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
+                    var selectedCurve: BezierCurve? = null
+                    var selectedPointIndex: Int? = null
+                    Canvas(modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { offset ->
+
+                                    // find the closest control point of selected Bézier curve with maximum distance of 10 px
+                                    selectedCurve = viewModel.getBezierCurveByColor(state.value.selectedColor)
+                                    val newBezierControlPoints = selectedCurve?.controlPoints?.map {
+                                        Offset(it.x * size.width, it.y * size.height)
+                                    }
+                                    val newOffset = Offset(offset.x, size.height - offset.y)
+                                    if(selectedCurve != null) {
+                                        selectedPointIndex = newBezierControlPoints!!.indexOfFirst {
+                                            (newOffset - it).getDistance() < 20.dp.toPx()
+                                        }.takeIf { it != -1 }
+                                    }
+                                },
+                                onDrag = { change, dragAmount ->
+                                    // update the position of the selected control point
+                                    if (selectedCurve != null && selectedPointIndex != null) {
+                                        val newOffset = selectedCurve!!.controlPoints[selectedPointIndex!!] + Offset( dragAmount.x / size.width, -dragAmount.y / size.height)
+                                        viewModel.updateControlPoint(selectedCurve!!, selectedPointIndex!!, newOffset)
+                                    }
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    selectedCurve = null
+                                    selectedPointIndex = null
+                                }
+                            )
+                        }
+                    ) {
                         // Zastosowanie transformacji układu współrzędnych
                         withTransform({
                             translate(left = 0f, top = 0.0f) // Przesunięcie początku układu współrzędnych do lewego dolnego rogu
@@ -72,28 +107,15 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                                         viewModel.updateControlPoint(curve, pointIndex, newOffset)
                                     }
                                 }
-                            } else {
-                                val selectedCurve = viewModel.getBezierCurveByColor(state.value.selectedColor)
-                                if (selectedCurve != null) {
-                                    drawBezierCurve(selectedCurve) { pointIndex, newOffset ->
-                                        viewModel.updateControlPoint(selectedCurve, pointIndex, newOffset)
-                                    }
+                            }
+                            val selectedCurve = viewModel.getBezierCurveByColor(state.value.selectedColor)
+                            if (selectedCurve != null) {
+                                drawBezierCurveWithControlPoints(selectedCurve) { pointIndex, newOffset ->
+                                    viewModel.updateControlPoint(selectedCurve, pointIndex, newOffset)
                                 }
                             }
                         }
                     }
-//                    Canvas(modifier = Modifier.fillMaxSize()) {
-//                        if (state.value.showAllCurves) {
-//                            state.value.bezierCurves.forEach { curve ->
-//                                drawBezierCurve(curve)
-//                            }
-//                        } else {
-//                            val selectedCurve = viewModel.getBezierCurveByColor(state.value.selectedColor)
-//                            if (selectedCurve != null) {
-//                                drawBezierCurve(selectedCurve)
-//                            }
-//                        }
-//                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -150,8 +172,10 @@ fun colorName(color: Color): String {
     }
 }
 
-
-fun DrawScope.drawBezierCurve(bezierCurve: BezierCurve) {
+fun DrawScope.drawBezierCurve(
+    bezierCurve: BezierCurve,
+    onControlPointMoved: (Int, Offset) -> Unit
+) {
     val controlPoints = bezierCurve.controlPoints
     val path = Path().apply {
         reset()
@@ -165,23 +189,15 @@ fun DrawScope.drawBezierCurve(bezierCurve: BezierCurve) {
         }
     }
 
+    // Rysowanie krzywej Béziera
     drawPath(
         path = path,
         color = bezierCurve.color,
         style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
     )
-
-    // Rysowanie punktów kontrolnych
-    controlPoints.forEach { point ->
-        drawCircle(
-            color = bezierCurve.color,
-            radius = 6.dp.toPx(),
-            center = Offset(point.x * size.width, point.y * size.height)
-        )
-    }
 }
 
-fun DrawScope.drawBezierCurve(
+fun DrawScope.drawBezierCurveWithControlPoints(
     bezierCurve: BezierCurve,
     onControlPointMoved: (Int, Offset) -> Unit
 ) {
@@ -215,30 +231,5 @@ fun DrawScope.drawBezierCurve(
             radius = 4.dp.toPx(),
             center = absoluteOffset
         )
-
-        // Obsługa przeciągania punktu
-        handleDragPoint(
-            initialOffset = absoluteOffset,
-            onPointDragged = { newOffset ->
-                val relativeOffset = Offset(
-                    newOffset.x / size.width,
-                    newOffset.y / size.height
-                )
-                onControlPointMoved(index, relativeOffset)
-            }
-        )
-    }
-}
-
-fun DrawScope.handleDragPoint(
-    initialOffset: Offset,
-    onPointDragged: (Offset) -> Unit
-) {
-    Modifier.pointerInput(Unit) {
-        detectDragGestures { change, dragAmount ->
-            change.consume() // Zatrzymanie propagacji zdarzenia
-            val newOffset = initialOffset + dragAmount
-            onPointDragged(newOffset)
-        }
     }
 }
