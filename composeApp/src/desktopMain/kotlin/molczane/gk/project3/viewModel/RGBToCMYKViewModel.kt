@@ -7,6 +7,10 @@ import molczane.gk.project3.model.RGBToCMYKState
 import molczane.gk.project3.model.BezierCurve
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import molczane.gk.project3.model.CMYK
 
 class RGBToCMYKViewModel : ViewModel() {
@@ -91,37 +95,37 @@ class RGBToCMYKViewModel : ViewModel() {
         return listOf(
             BezierCurve(
                 controlPoints = listOf(
-                    Offset(0f, 0f),   // Początek
-                    Offset(0.2f, 0.3f), // Punkt kontrolny 1
-                    Offset(0.6f, 0.8f), // Punkt kontrolny 2
-                    Offset(1f, 1f)    // Koniec
+                    Offset(0f, 0f),       // Start point
+                    Offset(200f, 300f),   // Control point 1
+                    Offset(400f, 500f),   // Control point 2
+                    Offset(600f, 600f)    // End point
                 ),
                 color = Color.Cyan
             ),
             BezierCurve(
                 controlPoints = listOf(
-                    Offset(0f, 0f),   // Początek
-                    Offset(0.3f, 0.4f), // Punkt kontrolny 1
-                    Offset(0.5f, 0.6f), // Punkt kontrolny 2
-                    Offset(1f, 1f)    // Koniec
+                    Offset(0f, 0f),       // Start point
+                    Offset(150f, 250f),   // Control point 1
+                    Offset(450f, 400f),   // Control point 2
+                    Offset(600f, 600f)    // End point
                 ),
                 color = Color.Magenta
             ),
             BezierCurve(
                 controlPoints = listOf(
-                    Offset(0f, 0f),   // Początek
-                    Offset(0.4f, 0.2f), // Punkt kontrolny 1
-                    Offset(0.7f, 0.9f), // Punkt kontrolny 2
-                    Offset(1f, 1f)    // Koniec
+                    Offset(0f, 0f),       // Start point
+                    Offset(100f, 200f),   // Control point 1
+                    Offset(500f, 450f),   // Control point 2
+                    Offset(600f, 600f)    // End point
                 ),
                 color = Color.Yellow
             ),
             BezierCurve(
                 controlPoints = listOf(
-                    Offset(0f, 0f),   // Początek
-                    Offset(0.1f, 0.0f), // Punkt kontrolny 1
-                    Offset(0.8f, 0.0f), // Punkt kontrolny 2
-                    Offset(1f, 0f)    // Koniec
+                    Offset(0f, 0f),       // Start point
+                    Offset(50f, 50f),    // Control point 1
+                    Offset(550f, 50f),   // Control point 2
+                    Offset(600f, 600f)      // End point
                 ),
                 color = Color.Black
             )
@@ -189,63 +193,359 @@ class RGBToCMYKViewModel : ViewModel() {
         val blue: Int
     )
 
+    fun updateCImage() {
+        val cyanImage = convertRGBToCMYKCyan(_state.value.originalImage, _state.value.bezierCurves)
+        val updatedImages = _state.value.cmykImages.toMutableList()
+        if (updatedImages.isNotEmpty()) {
+            updatedImages[0] = cyanImage // Zastąpienie obrazu Cyan
+        } else {
+            updatedImages.add(cyanImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
+        }
+        _state.value = _state.value.copy(cmykImages = updatedImages)
+    }
+
+    fun updateMImage() {
+        val magentaImage = convertRGBToCMYKMagenta(_state.value.originalImage, _state.value.bezierCurves)
+        val updatedImages = _state.value.cmykImages.toMutableList()
+        if (updatedImages.isNotEmpty()) {
+            updatedImages[1] = magentaImage // Zastąpienie obrazu Cyan
+        } else {
+            updatedImages.add(magentaImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
+        }
+        _state.value = _state.value.copy(cmykImages = updatedImages)
+    }
+
+    fun updateYImage() {
+        val yellowImage = convertRGBToCMYKYellow(_state.value.originalImage, _state.value.bezierCurves)
+        val updatedImages = _state.value.cmykImages.toMutableList()
+        if (updatedImages.isNotEmpty()) {
+            updatedImages[2] = yellowImage // Zastąpienie obrazu Cyan
+        } else {
+            updatedImages.add(yellowImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
+        }
+        _state.value = _state.value.copy(cmykImages = updatedImages)
+    }
+
+    fun updateKImage() {
+        val blackImage = convertRGBToCMYKBlack(_state.value.originalImage, _state.value.bezierCurves)
+        val updatedImages = _state.value.cmykImages.toMutableList()
+        if (updatedImages.isNotEmpty()) {
+            updatedImages[3] = blackImage // Zastąpienie obrazu Cyan
+        } else {
+            updatedImages.add(blackImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
+        }
+        _state.value = _state.value.copy(cmykImages = updatedImages)
+    }
+
+    fun updateCMYKimages() {
+        _state.value = _state.value.copy(
+            cmykImages = convertRGBToCMYK(_state.value.originalImage, _state.value.bezierCurves)
+        )
+    }
 
     fun convertRGBToCMYK(
         image: ImageBitmap,
-        bezierCurves: List<BezierCurve> // Krzywe dla każdego kanału: "C", "M", "Y", "K"
+        bezierCurves: List<BezierCurve>
     ): List<ImageBitmap> {
         val width = image.width
         val height = image.height
 
-        // Kanały wynikowe dla C, M, Y, K
+        // Create ImageBitmaps for each CMYK channel
         val cyanBitmap = ImageBitmap(width, height)
         val magentaBitmap = ImageBitmap(width, height)
         val yellowBitmap = ImageBitmap(width, height)
         val blackBitmap = ImageBitmap(width, height)
 
         val pixelMap = image.toPixelMap()
+        val paint = Paint()
 
-        // Iteracja przez piksele obrazu RGB
-        // Iteracja przez piksele obrazu RGB
+        // Create Canvas for each channel
+        val cyanCanvas = Canvas(cyanBitmap)
+        val magentaCanvas = Canvas(magentaBitmap)
+        val yellowCanvas = Canvas(yellowBitmap)
+        val blackCanvas = Canvas(blackBitmap)
+
+        // Iterate through all pixels
         for (x in 0 until width) {
             for (y in 0 until height) {
                 val pixelColor = pixelMap[x, y]
 
-                // Pobieranie wartości RGB
+                // Extract RGB values
                 val r = pixelColor.red
                 val g = pixelColor.green
                 val b = pixelColor.blue
 
-                // Konwersja RGB -> CMYK
+                // Convert RGB -> CMYK
                 val cmyk = rgbToCmyk(r, g, b)
 
-                // Modyfikacja wartości CMYK na podstawie krzywych Béziera
+                // Adjust CMYK values using Bézier curves
                 val cyan = evaluateBezier(bezierCurves[0], cmyk.cyan)
                 val magenta = evaluateBezier(bezierCurves[1], cmyk.magenta)
                 val yellow = evaluateBezier(bezierCurves[2], cmyk.yellow)
                 val black = evaluateBezier(bezierCurves[3], cmyk.black)
 
-                val cyanRGB = cmykToRgb(cyan, 0f, 0f, 0f)
-                val magentaRGB = cmykToRgb(0f, magenta, 0f, 0f)
-                val yellowRGB = cmykToRgb(0f, 0f, yellow, 0f)
-                val blackRGB = cmykToRgb(0f, 0f, 0f, black)
+                // Convert adjusted CMYK values back to RGB for visualization
+                val cyanColor = cmykToRgb(cyan, 0f, 0f, 0f)
+                val magentaColor = cmykToRgb(0f, magenta, 0f, 0f)
+                val yellowColor = cmykToRgb(0f, 0f, yellow, 0f)
+                val blackColor = cmykToRgb(0f, 0f, 0f, black)
 
-                // Rysowanie pikseli na kanałach C, M, Y, K
-                drawPixel(cyanBitmap, x, y, Color(cyanRGB.red, cyanRGB.blue, cyanRGB.green))
-                drawPixel(magentaBitmap, x, y, Color(magentaRGB.red, magentaRGB.blue, magentaRGB.green))
-                drawPixel(yellowBitmap, x, y, Color(yellowRGB.red, yellowRGB.blue, yellowRGB.green))
-                drawPixel(blackBitmap, x, y,Color(blackRGB.red, blackRGB.blue, blackRGB.green))
+                // Draw pixels on respective canvases
+                paint.color = Color(cyanColor.red, cyanColor.green, cyanColor.blue)
+                cyanCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+
+                paint.color = Color(magentaColor.red, magentaColor.green, magentaColor.blue)
+                magentaCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+
+                paint.color = Color(yellowColor.red, yellowColor.green, yellowColor.blue)
+                yellowCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+
+                paint.color = Color(blackColor.red, blackColor.green, blackColor.blue)
+                blackCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
             }
         }
 
         return listOf(cyanBitmap, magentaBitmap, yellowBitmap, blackBitmap)
     }
 
+    fun convertRGBToCMYKMagenta(
+        image: ImageBitmap,
+        bezierCurves: List<BezierCurve>
+    ): ImageBitmap {
+        val width = image.width
+        val height = image.height
+
+        // Create ImageBitmaps for each CMYK channel
+        val magentaBitmap = ImageBitmap(width, height)
+
+        val pixelMap = image.toPixelMap()
+        val paint = Paint()
+
+        // Create Canvas for each channel
+        val magentaCanvas = Canvas(magentaBitmap)
+
+        // Iterate through all pixels
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val pixelColor = pixelMap[x, y]
+
+                // Extract RGB values
+                val r = pixelColor.red
+                val g = pixelColor.green
+                val b = pixelColor.blue
+
+                // Convert RGB -> CMYK
+                val cmyk = rgbToCmyk(r, g, b)
+
+                // Adjust CMYK values using Bézier curves
+                val magenta = evaluateBezier(bezierCurves[1], cmyk.magenta)
+
+                // Convert adjusted CMYK values back to RGB for visualization
+                val magentaColor = cmykToRgb(0f, magenta, 0f, 0f)
+
+                // Draw pixels on respective canvases
+                paint.color = Color(magentaColor.red, magentaColor.green, magentaColor.blue)
+                magentaCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+            }
+        }
+
+        return magentaBitmap
+    }
+
+    fun convertRGBToCMYKYellow(
+        image: ImageBitmap,
+        bezierCurves: List<BezierCurve>
+    ): ImageBitmap {
+        val width = image.width
+        val height = image.height
+
+        // Create ImageBitmaps for each CMYK channel
+        val yellowBitmap = ImageBitmap(width, height)
+
+        val pixelMap = image.toPixelMap()
+        val paint = Paint()
+
+        // Create Canvas for each channel
+        val yellowCanvas = Canvas(yellowBitmap)
+
+        // Iterate through all pixels
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val pixelColor = pixelMap[x, y]
+
+                // Extract RGB values
+                val r = pixelColor.red
+                val g = pixelColor.green
+                val b = pixelColor.blue
+
+                // Convert RGB -> CMYK
+                val cmyk = rgbToCmyk(r, g, b)
+
+                // Adjust CMYK values using Bézier curves
+                val yellow = evaluateBezier(bezierCurves[2], cmyk.yellow)
+
+                // Convert adjusted CMYK values back to RGB for visualization
+                val yellowColor = cmykToRgb(0f, 0f, yellow, 0f)
+
+                // Draw pixels on respective canvases
+                paint.color = Color(yellowColor.red, yellowColor.green, yellowColor.blue)
+                yellowCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+            }
+        }
+
+        return yellowBitmap
+    }
+
+    fun convertRGBToCMYKBlack(
+        image: ImageBitmap,
+        bezierCurves: List<BezierCurve>
+    ): ImageBitmap {
+        val width = image.width
+        val height = image.height
+
+        // Create ImageBitmaps for each CMYK channel
+        val blackBitmap = ImageBitmap(width, height)
+
+        val pixelMap = image.toPixelMap()
+        val paint = Paint()
+
+        // Create Canvas for each channel
+        val blackCanvas = Canvas(blackBitmap)
+
+        // Iterate through all pixels
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val pixelColor = pixelMap[x, y]
+
+                // Extract RGB values
+                val r = pixelColor.red
+                val g = pixelColor.green
+                val b = pixelColor.blue
+
+                // Convert RGB -> CMYK
+                val cmyk = rgbToCmyk(r, g, b)
+
+                // Adjust CMYK values using Bézier curves
+                val black = evaluateBezier(bezierCurves[3], cmyk.black)
+
+                // Convert adjusted CMYK values back to RGB for visualization
+                val blackColor = cmykToRgb(0f, 0f, 0f, black)
+
+                // Draw pixels on respective canvases
+                paint.color = Color(blackColor.red, blackColor.green, blackColor.blue)
+                blackCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+            }
+        }
+
+        return blackBitmap
+    }
+
+//    fun convertRGBToCMYKCyan(
+//        image: ImageBitmap,
+//        bezierCurves: List<BezierCurve>
+//    ): ImageBitmap {
+//        val width = image.width
+//        val height = image.height
+//
+//        // Create ImageBitmaps for each CMYK channel
+//        val cyanBitmap = ImageBitmap(width, height)
+//
+//        val pixelMap = image.toPixelMap()
+//        val paint = Paint()
+//
+//        // Create Canvas for each channel
+//        val cyanCanvas = Canvas(cyanBitmap)
+//
+//        // Iterate through all pixels
+//        for (x in 0 until width) {
+//            for (y in 0 until height) {
+//                val pixelColor = pixelMap[x, y]
+//
+//                // Extract RGB values
+//                val r = pixelColor.red
+//                val g = pixelColor.green
+//                val b = pixelColor.blue
+//
+//                // Convert RGB -> CMYK
+//                val cmyk = rgbToCmyk(r, g, b)
+//
+//                // Adjust CMYK values using Bézier curves
+//                val cyan = evaluateBezier(bezierCurves[0], cmyk.cyan)
+//
+//                // Convert adjusted CMYK values back to RGB for visualization
+//                val cyanColor = cmykToRgb(cyan, 0f, 0f, 0f)
+//
+//                // Draw pixels on respective canvases
+//                paint.color = Color(cyanColor.red, cyanColor.green, cyanColor.blue)
+//                cyanCanvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+//            }
+//        }
+//
+//        return cyanBitmap
+//    }
+
+    fun convertRGBToCMYKCyan(
+        image: ImageBitmap,
+        bezierCurves: List<BezierCurve>
+    ): ImageBitmap {
+        val width = image.width
+        val height = image.height
+
+        // Prepare an empty ImageBitmap for Cyan output
+        val cyanBitmap = ImageBitmap(width, height)
+        val pixelMap = image.toPixelMap()
+
+        // Define the number of parallel tasks
+        val numTasks = Runtime.getRuntime().availableProcessors()
+        val chunkSize = height / numTasks
+
+        val canvas = Canvas(cyanBitmap)
+        val paint = Paint()
+
+        runBlocking {
+            (0 until numTasks).map { taskIndex ->
+                async {
+                    val startY = taskIndex * chunkSize
+                    val endY = if (taskIndex == numTasks - 1) height else (startY + chunkSize)
+
+                    for (y in startY until endY) {
+                        for (x in 0 until width) {
+                            val pixelColor = pixelMap[x, y]
+
+                            // Extract RGB values
+                            val r = pixelColor.red
+                            val g = pixelColor.green
+                            val b = pixelColor.blue
+
+                            // Convert RGB -> CMYK
+                            val k = 1 - maxOf(r, g, b)
+                            val denominator = 1 - k
+                            val cyan = if (denominator == 0f) 0f else (1 - r - k) / denominator
+
+                            // Adjust Cyan value using Bézier curve
+                            val adjustedCyan = evaluateBezier(bezierCurves[0], cyan)
+
+                            // Convert adjusted Cyan to RGB for visualization
+                            val cyanColor = cmykToRgb(adjustedCyan, 0f, 0f, 0f)
+
+                            // Draw pixels on respective canvases
+                            paint.color = Color(cyanColor.red, cyanColor.green, cyanColor.blue)
+                            canvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+                        }
+                    }
+                }
+            }.awaitAll() // Wait for all tasks to complete
+        }
+
+        return cyanBitmap
+    }
+
+
     fun evaluateBezier(bezierCurve: BezierCurve, value: Float): Float {
-        val p0 = bezierCurve.controlPoints[0]
-        val p1 = bezierCurve.controlPoints[1]
-        val p2 = bezierCurve.controlPoints[2]
-        val p3 = bezierCurve.controlPoints[3]
+        val p0 = Offset(bezierCurve.controlPoints[0].x / 600 , bezierCurve.controlPoints[0].y / 600)
+        val p1 = Offset(bezierCurve.controlPoints[1].x / 600 , bezierCurve.controlPoints[1].y / 600)
+        val p2 = Offset(bezierCurve.controlPoints[2].x / 600 , bezierCurve.controlPoints[2].y / 600)
+        val p3 = Offset(bezierCurve.controlPoints[3].x / 600 , bezierCurve.controlPoints[3].y / 600)
 
         // Bezier 3-go stopnia: B(t) = (1-t)^3 * P0 + 3(1-t)^2*t * P1 + 3(1-t)*t^2 * P2 + t^3 * P3
         val t = value
