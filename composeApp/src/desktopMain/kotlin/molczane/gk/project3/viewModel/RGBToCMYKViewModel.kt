@@ -6,13 +6,11 @@ import kotlinx.coroutines.flow.StateFlow
 import molczane.gk.project3.model.RGBToCMYKState
 import molczane.gk.project3.model.BezierCurve
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import molczane.gk.project3.model.CMY
 import molczane.gk.project3.model.CMYK
 
 class RGBToCMYKViewModel : ViewModel() {
@@ -24,11 +22,12 @@ class RGBToCMYKViewModel : ViewModel() {
     init {
         // Inicjalizacja przykładowych krzywych Béziera dla każdego koloru
         _state.value = _state.value.copy(
-            bezierCurves = initializeDefaultCurves()
+            bezierCurves = initializeDefaultCurves(),
         )
         _state.value = _state.value.copy(
             cmykImages = convertRGBToCMYK(_state.value.originalImage, _state.value.bezierCurves)
         )
+        updateProcessedImageFromCMYKImages()
     }
 
     fun selectColor(color: Color) {
@@ -143,6 +142,10 @@ class RGBToCMYKViewModel : ViewModel() {
         return _state.value.bezierCurves.find { it.color == color }
     }
 
+    fun rgbToCMY(r: Float, g: Float, b: Float): CMY {
+        // Normalize RGB values to the range [0, 1]
+        return CMY(1f - r, 1f - g, 1f - b)
+    }
 
     fun rgbToCmyk(r: Float, g: Float, b: Float): CMYK {
         // Normalize RGB values to the range [0, 1]
@@ -170,10 +173,10 @@ class RGBToCMYKViewModel : ViewModel() {
 
     fun cmykToRgb(c: Float, m: Float, y: Float, k: Float): RGB {
         // Ensure input values are in the range [0, 1]
-        val cyan = c.coerceIn(0f, 1f)
-        val magenta = m.coerceIn(0f, 1f)
-        val yellow = y.coerceIn(0f, 1f)
-        val black = k.coerceIn(0f, 1f)
+        val cyan = c
+        val magenta = m
+        val yellow = y
+        val black = k
 
         // Calculate RGB values
         val r = 255 * (1 - cyan) * (1 - black)
@@ -286,7 +289,9 @@ class RGBToCMYKViewModel : ViewModel() {
 //                val yellow = evaluateBezier(bezierCurves[2], cmyk.yellow)
 //                val black = evaluateBezier(bezierCurves[3], cmyk.black)
 
-                val cmykTransformed = transformCMYK(cmyk.cyan, cmyk.magenta, cmyk.yellow, bezierCurves[0], bezierCurves[1], bezierCurves[2], bezierCurves[3])
+                val cmy = rgbToCMY(r, g, b)
+
+                val cmykTransformed = transformCMYK(cmy.cyan, cmy.magenta, cmy.yellow, bezierCurves[0], bezierCurves[1], bezierCurves[2], bezierCurves[3])
                 val cyan = cmykTransformed.cyan
                 val magenta = cmykTransformed.magenta
                 val yellow = cmykTransformed.yellow
@@ -345,10 +350,12 @@ class RGBToCMYKViewModel : ViewModel() {
                 // Convert RGB -> CMYK
                 val cmyk = rgbToCmyk(r, g, b)
 
+                val cmy = rgbToCMY(r, g, b)
+
                 val cmykTransformed = transformCMYK(
-                    cmyk.cyan,
-                    cmyk.magenta,
-                    cmyk.yellow,
+                    cmy.cyan,
+                    cmy.magenta,
+                    cmy.yellow,
                     bezierCurves[0],
                     bezierCurves[1],
                     bezierCurves[2],
@@ -398,13 +405,12 @@ class RGBToCMYKViewModel : ViewModel() {
                 val g = pixelColor.green
                 val b = pixelColor.blue
 
-                // Convert RGB -> CMYK
-                val cmyk = rgbToCmyk(r, g, b)
+                val cmy = rgbToCMY(r, g, b)
 
                 val cmykTransformed = transformCMYK(
-                    cmyk.cyan,
-                    cmyk.magenta,
-                    cmyk.yellow,
+                    cmy.cyan,
+                    cmy.magenta,
+                    cmy.yellow,
                     bezierCurves[0],
                     bezierCurves[1],
                     bezierCurves[2],
@@ -456,10 +462,12 @@ class RGBToCMYKViewModel : ViewModel() {
                 // Convert RGB -> CMYK
                 val cmyk = rgbToCmyk(r, g, b)
 
+                val cmy = rgbToCMY(r, g, b)
+
                 val cmykTransformed = transformCMYK(
-                    cmyk.cyan,
-                    cmyk.magenta,
-                    cmyk.yellow,
+                    cmy.cyan,
+                    cmy.magenta,
+                    cmy.yellow,
                     bezierCurves[0],
                     bezierCurves[1],
                     bezierCurves[2],
@@ -542,6 +550,8 @@ class RGBToCMYKViewModel : ViewModel() {
         val canvas = Canvas(imageBitmap)
         val paint = Paint()
 
+        val imagePixelMap = image.toPixelMap()
+
         val cyanPixelMap = cyanImage.toPixelMap()
         val magentaPixelMap = magentaImage.toPixelMap()
         val yellowPixelMap = yellowImage.toPixelMap()
@@ -555,19 +565,44 @@ class RGBToCMYKViewModel : ViewModel() {
                 val yellowPixelColor = yellowPixelMap[x, y]
                 val blackPixelColor = blackPixelMap[x, y]
 
+                val pixelColor = imagePixelMap[x, y]
+
                 // Extract RGB values
-                val r = (cyanPixelColor.red + magentaPixelColor.red + yellowPixelColor.red + blackPixelColor.red) / 4f
-                val g = (cyanPixelColor.green + magentaPixelColor.green + yellowPixelColor.green + blackPixelColor.green) / 4f
-                val b = (cyanPixelColor.blue + magentaPixelColor.blue + yellowPixelColor.blue + blackPixelColor.blue) / 4f
+                val r = pixelColor.red
+                val g = pixelColor.green
+                val b = pixelColor.blue
+
+                // Extract RGB values
+                //val r = (cyanPixelColor.red + magentaPixelColor.red + yellowPixelColor.red + blackPixelColor.red) / 4f
+                //val g = (cyanPixelColor.green + magentaPixelColor.green + yellowPixelColor.green + blackPixelColor.green) / 4f
+                //val b = (cyanPixelColor.blue + magentaPixelColor.blue + yellowPixelColor.blue + blackPixelColor.blue) / 4f
 
                 // Convert RGB -> CMYK
-                val cmyk = rgbToCmyk(r, g, b)
+                // val cmyk = rgbToCmyk(r, g, b)
+
+                val cmy = rgbToCMY(r, g, b)
+
+                val cmykTransformed = transformCMYK(
+                    cmy.cyan,
+                    cmy.magenta,
+                    cmy.yellow,
+                    _state.value.bezierCurves[0],
+                    _state.value.bezierCurves[1],
+                    _state.value.bezierCurves[2],
+                    _state.value.bezierCurves[3]
+                )
+
+                // Adjust CMYK values using Bézier curves
+                //val black = evaluateBezier(bezierCurves[3], cmyk.black)
 
                 // Convert adjusted CMYK values back to RGB for visualization
-                val color = cmykToRgb(cmyk.cyan, cmyk.magenta, cmyk.yellow, cmyk.black)
+                val color = cmykToRgb(cmykTransformed.cyan, cmykTransformed.magenta, cmykTransformed.yellow, cmykTransformed.black)
 
                 // Draw pixels on respective canvases
                 paint.color = Color(color.red, color.green, color.blue)
+
+                // Draw pixels on respective canvases
+                //paint.color = Color((r * 255).toInt(), (g * 255).toInt(), (b * 255).toInt())
                 paint.alpha = 1f
 
                 canvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
@@ -611,16 +646,24 @@ class RGBToCMYKViewModel : ViewModel() {
                             val g = pixelColor.green
                             val b = pixelColor.blue
 
-                            // Convert RGB -> CMYK
-                            val k = 1 - maxOf(r, g, b)
-                            val denominator = 1 - k
-                            val cyan = if (denominator == 0f) 0f else (1 - r - k) / denominator
+                            val cmy = rgbToCMY(r, g, b)
 
-                            // Adjust Cyan value using Bézier curve
-                            val adjustedCyan = evaluateBezier(bezierCurves[0], cyan)
+                            val cmykTransformed = transformCMYK(
+                                cmy.cyan,
+                                cmy.magenta,
+                                cmy.yellow,
+                                bezierCurves[0],
+                                bezierCurves[1],
+                                bezierCurves[2],
+                                bezierCurves[3]
+                            )
 
-                            // Convert adjusted Cyan to RGB for visualization
-                            val cyanColor = cmykToRgb(adjustedCyan, 0f, 0f, 0f)
+                            // Adjust CMYK values using Bézier curves
+                            //val black = evaluateBezier(bezierCurves[3], cmyk.black)
+                            val cyan = cmykTransformed.cyan
+
+                            // Convert adjusted CMYK values back to RGB for visualization
+                            val cyanColor = cmykToRgb(cyan, 0f, 0f, 0f)
 
                             // Draw pixels on respective canvases
                             paint.color = Color(cyanColor.red, cyanColor.green, cyanColor.blue)
