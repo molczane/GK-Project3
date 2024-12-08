@@ -34,21 +34,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
 
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            // Lewa strona - podgląd obrazu
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(8.dp)
-            ) {
-                Image(
-                    bitmap = state.value.originalImage,
-                    contentDescription = "Oryginalny obraz",
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
-                )
-            }
-
-            // Prawa strona - krzywe Béziera i przyciski
+            // Lewa strona - krzywe Béziera i przyciski
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -107,6 +93,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                                             Color.Yellow -> viewModel.updateYImage()
                                             Color.Black -> viewModel.updateKImage()
                                         }
+                                        viewModel.updateProcessedImageFromCMYKImages()
                                     }
                                     selectedCurve = null
                                     selectedPointIndex = null
@@ -147,15 +134,31 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Button(onClick = { viewModel.showAllCurves() }) { Text("Show All Curves") }
-                        Button(onClick = { viewModel.convertToBlackAndWhite() }) { Text("Black and White") }
+                        Button(
+                            onClick = { viewModel.showAllCurves() },
+                            modifier = Modifier.weight(1f)) {
+                            Text("Show All Curves")
+                        }
+                        Button(
+                            onClick = { viewModel.convertToBlackAndWhite() },
+                            modifier = Modifier.weight(1f)) {
+                            Text("Black and White")
+                        }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Button(onClick = { viewModel.saveCurves() }) { Text("Save Curve") }
-                        Button(onClick = { viewModel.loadCurves() }) { Text("Load Curve") }
+                        Button(
+                            onClick = { viewModel.saveCurves() },
+                            modifier = Modifier.weight(1f)) {
+                            Text("Save Curve")
+                        }
+                        Button(
+                            onClick = { viewModel.loadCurves() },
+                            modifier = Modifier.weight(1f)) {
+                            Text("Load Curve")
+                        }
                     }
                 }
 
@@ -169,11 +172,37 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                     listOf(Color.Cyan, Color.Magenta, Color.Yellow, Color.Black).forEach { color ->
                         Button(
                             onClick = { viewModel.selectColor(color) },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = color)
+                            colors = ButtonDefaults.buttonColors(backgroundColor = color),
+                            modifier = Modifier.weight(1f).padding(8.dp)
                         ) {
-                            Text(colorName(color))
+                            if(colorName(color) == "Black") {
+                                Text(colorName(color), color = Color.White)
+                            } else {
+                                Text(colorName(color))
+                            }
                         }
                     }
+                }
+            }
+
+            // Prawa strona - obraz oryginalny i przetworzony
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                Image(
+                    bitmap = state.value.originalImage,
+                    contentDescription = "Oryginalny obraz",
+                    modifier = Modifier.fillMaxWidth()//.aspectRatio(1f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                if(state.value.processedImage != null) {
+                    Image(
+                        bitmap = state.value.processedImage!!,
+                        contentDescription = "Przetworzony obraz",
+                        modifier = Modifier.fillMaxWidth()//.aspectRatio(1f)
+                    )
                 }
             }
         }
