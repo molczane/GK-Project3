@@ -16,6 +16,9 @@ class RGBToCMYKViewModel : ViewModel() {
 
     private val bezierCurveStorage = mutableMapOf<Color, BezierCurve>()
 
+    private var _showAllPictures = MutableStateFlow(true)
+    val showAllPictures: StateFlow<Boolean> get() = _showAllPictures
+
     init {
         // Inicjalizacja przykładowych krzywych Béziera dla każdego koloru
         _state.value = _state.value.copy(
@@ -128,6 +131,10 @@ class RGBToCMYKViewModel : ViewModel() {
                 color = Color.Black
             )
         )
+    }
+
+    fun showAllPictures(show: Boolean) {
+        _showAllPictures.value = show
     }
 
     private fun colorToIndex(color: Color): Int {

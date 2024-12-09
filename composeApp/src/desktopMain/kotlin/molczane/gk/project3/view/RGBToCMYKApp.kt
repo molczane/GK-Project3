@@ -34,7 +34,6 @@ import molczane.gk.project3.viewModel.RGBToCMYKViewModel
 fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
     val state by mutableStateOf( viewModel.state.collectAsState() )
 
-
     MaterialTheme {
         Row(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             // Lewa strona - krzywe Béziera i przyciski
@@ -203,7 +202,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.showAllPictures(!viewModel.showAllPictures.value) },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Show all pictures", fontSize = 9.sp)

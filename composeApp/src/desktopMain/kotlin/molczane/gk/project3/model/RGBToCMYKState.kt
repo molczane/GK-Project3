@@ -13,7 +13,8 @@ data class RGBToCMYKState(
     val cmykImages: List<ImageBitmap> = emptyList(),
     val bezierCurves: List<BezierCurve> = emptyList(),
     val selectedColor: Color = Color.Cyan,
-    val showAllCurves: Boolean = true
+    val showAllCurves: Boolean = true,
+    val showAllPictures: Boolean = false
 )
 
 fun loadImage(filePath: String): ImageBitmap {
