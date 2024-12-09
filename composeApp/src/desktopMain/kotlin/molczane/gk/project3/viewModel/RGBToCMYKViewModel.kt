@@ -1,5 +1,9 @@
 package molczane.gk.project3.viewModel
 
+import java.io.File
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,7 +13,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.update
 import molczane.gk.project3.model.*
 import java.awt.image.BufferedImage
-import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
@@ -94,9 +97,9 @@ class RGBToCMYKViewModel : ViewModel() {
         _state.value = _state.value.copy(processedImage = grayscaleImage)
     }
 
-    fun saveCurves() {
+    fun saveCurves(index: Int) {
         // Zapis krzywych do mapy (symulacja zapisu do pliku)
-        bezierCurveStorage[_state.value.selectedColor] = getCurrentBezierCurve()
+        serializeCurvesToFile(index)
     }
 
     fun loadCurves() {
@@ -253,6 +256,16 @@ class RGBToCMYKViewModel : ViewModel() {
             updatedImages.add(yellowImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
         }
         _state.value = _state.value.copy(cmykImages = updatedImages)
+    }
+    
+    private fun serializeCurvesToFile(index: Int) {
+        val outputDirectory = File("src/curves")
+        if (!outputDirectory.exists()) {
+            outputDirectory.mkdirs()
+        }
+
+        val outputFile = File(outputDirectory, "curve_$index.json")
+        outputFile.writeText(Json.encodeToString(_state.value.bezierCurves[index]))
     }
 
     fun updateKImage() {

@@ -219,7 +219,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                                 Text("Change picture", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.saveCurves() },
+                                onClick = { viewModel.saveCurves(colorNumber(state.value.selectedColor)) },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Save Curve", fontSize = 9.sp)
@@ -283,6 +283,16 @@ fun colorName(color: Color): String {
         Color.Yellow -> "Yellow"
         Color.Black -> "Black"
         else -> "Unknown"
+    }
+}
+
+fun colorNumber(color: Color): Int {
+    return when (color) {
+        Color.Cyan -> 0
+        Color.Magenta -> 1
+        Color.Yellow -> 2
+        Color.Black -> 3
+        else -> -1
     }
 }
 
