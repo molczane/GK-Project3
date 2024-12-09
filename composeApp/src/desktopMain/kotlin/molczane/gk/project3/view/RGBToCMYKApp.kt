@@ -28,6 +28,9 @@ import molczane.gk.project3.model.BezierCurve
 import molczane.gk.project3.viewModel.RGBToCMYKViewModel
 import java.awt.FileDialog
 import java.awt.Frame
+import java.io.File
+import javax.swing.JFileChooser
+import javax.swing.filechooser.FileSystemView
 
 @Composable
 fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
@@ -206,7 +209,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Button(
-                                onClick = { viewModel.showAllPictures(!viewModel.showAllPictures.value) },
+                                onClick = { viewModel.showAllPictures(true) },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Show all pictures", fontSize = 9.sp)
@@ -245,7 +248,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                             }
 
                             Button(
-                                onClick = { viewModel.saveImages() },
+                                onClick = { chooseFolder()?.let { viewModel.saveImages(it) } },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Save pictures", fontSize = 9.sp)
@@ -368,4 +371,17 @@ fun openFileDialog(defaultDirectory: String = System.getProperty("user.home")): 
     fileDialog.directory = defaultDirectory // Set the default directory
     fileDialog.isVisible = true
     return fileDialog.file?.let { fileDialog.directory + it }
+}
+
+fun chooseFolder(): String? {
+    val fileChooser = JFileChooser(FileSystemView.getFileSystemView().homeDirectory)
+    fileChooser.dialogTitle = "Select a folder to save images"
+    fileChooser.fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+
+    val returnValue = fileChooser.showSaveDialog(null)
+    return if (returnValue == JFileChooser.APPROVE_OPTION) {
+        fileChooser.selectedFile.absolutePath // Return the full path as a String
+    } else {
+        null // Return null if no folder is selected
+    }
 }

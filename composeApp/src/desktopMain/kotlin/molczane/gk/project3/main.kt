@@ -16,16 +16,15 @@ fun main() = application {
         resizable = false, // Prevent resizing
         title = "GK-Project3",
     ) {
+        CMYKImagesView(viewModel)
+    }
+    Window(
+        onCloseRequest = ::exitApplication,
+        state = rememberWindowState(width = 800.dp, height = 600.dp), // Fixed size
+        resizable = false, // Prevent resizing
+        title = "GK-Project3",
+    ) {
         ModificationApp(viewModel)
     }
-    //if(viewModel.showAllPictures.value) {
-        Window(
-            onCloseRequest = ::exitApplication,
-            state = rememberWindowState(width = 800.dp, height = 600.dp), // Fixed size
-            resizable = false, // Prevent resizing
-            title = "GK-Project3",
-        ) {
-            CMYKImagesView(viewModel)
-        }
-    //}
+
 }

@@ -25,7 +25,7 @@ class RGBToCMYKViewModel : ViewModel() {
 
     private val bezierCurveStorage = mutableMapOf<Color, BezierCurve>()
 
-    private var _showAllPictures = MutableStateFlow(true)
+    private var _showAllPictures = MutableStateFlow(false)
     val showAllPictures: StateFlow<Boolean> get() = _showAllPictures
 
     init {
@@ -53,18 +53,29 @@ class RGBToCMYKViewModel : ViewModel() {
         }
     }
 
-    fun saveImages() {
+    fun saveImages(directory: String) {
+        val properDirectory =  directory.substringBeforeLast("/", directory)
+
         val cyanBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[0])
         val magentaBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[1])
         val yellowBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[2])
         val blackBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[3])
         val processedBufferedImage = _state.value.processedImage?.let { imageBitmapToBufferedImage(it) }
 
-        ImageIO.write(cyanBufferedImage, "png", File("src/processedImages/cyan.png"))
-        ImageIO.write(magentaBufferedImage, "png", File("src/processedImages/magenta.png"))
-        ImageIO.write(yellowBufferedImage, "png", File("src/processedImages/yellow.png"))
-        ImageIO.write(blackBufferedImage, "png", File("src/processedImages/black.png"))
-        ImageIO.write(processedBufferedImage, "png", File("src/processedImages/processed.png"))
+        // Write images to files
+        ImageIO.write(cyanBufferedImage, "png", File(properDirectory, "cyan.png"))
+        ImageIO.write(magentaBufferedImage, "png", File(properDirectory, "magenta.png"))
+        ImageIO.write(yellowBufferedImage, "png", File(properDirectory, "yellow.png"))
+        ImageIO.write(blackBufferedImage, "png", File(properDirectory, "black.png"))
+        if (processedBufferedImage != null) {
+            ImageIO.write(processedBufferedImage, "png", File(properDirectory, "processed.png"))
+        }
+
+//        ImageIO.write(cyanBufferedImage, "png", File("src/processedImages/cyan.png"))
+//        ImageIO.write(magentaBufferedImage, "png", File("src/processedImages/magenta.png"))
+//        ImageIO.write(yellowBufferedImage, "png", File("src/processedImages/yellow.png"))
+//        ImageIO.write(blackBufferedImage, "png", File("src/processedImages/black.png"))
+//        ImageIO.write(processedBufferedImage, "png", File("src/processedImages/processed.png"))
     }
 
     fun imageBitmapToBufferedImage(imageBitmap: ImageBitmap): BufferedImage {
