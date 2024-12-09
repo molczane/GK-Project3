@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import gk_project3.composeapp.generated.resources.Res
 import molczane.gk.project3.model.BezierCurve
 import molczane.gk.project3.viewModel.RGBToCMYKViewModel
 
@@ -45,13 +46,13 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Panel krzywych Béziera
-                Box(
+                Row(
                     modifier = Modifier
                         .height(300.dp)
                         .width(300.dp)
                         .weight(1f)
                         .border(.8.dp, color = Color.Gray),
-                    contentAlignment = Alignment.BottomEnd
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     var selectedCurve: BezierCurve? = null
                     var selectedPointIndex: Int? = null
@@ -249,19 +250,21 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
+                    .fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text("Original image", fontSize = 12.sp)
                 Image(
                     bitmap = state.value.originalImage,
                     contentDescription = "Oryginalny obraz",
-                    modifier = Modifier.fillMaxWidth()//.aspectRatio(1f)
+                    modifier = Modifier.fillMaxWidth().padding(4.dp).weight(1f)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Text("Processed image", fontSize = 12.sp)
                 if(state.value.processedImage != null) {
                     Image(
                         bitmap = state.value.processedImage!!,
                         contentDescription = "Przetworzony obraz",
-                        modifier = Modifier.fillMaxWidth()//.aspectRatio(1f)
+                        modifier = Modifier.fillMaxWidth().padding(4.dp).weight(1f)
                     )
                 }
             }

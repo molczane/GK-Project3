@@ -13,29 +13,29 @@ import molczane.gk.project3.viewModel.RGBToCMYKViewModel
 @Composable
 fun CMYKImagesView(viewModel: RGBToCMYKViewModel) {
     val state by mutableStateOf( viewModel.state.collectAsState() )
-    Column(modifier = Modifier.padding(16.dp)) {
-        Row {
+    Column(modifier = Modifier.padding(8.dp)) {
+        Row (modifier = Modifier.weight(1f) ) {
             Image(
                 bitmap = state.value.cmykImages[0],
                 contentDescription = "Cyan",
-                modifier = Modifier.weight(1f).padding(8.dp)
+                modifier = Modifier.weight(1f).padding(4.dp)
             )
             Image(
                 bitmap = state.value.cmykImages[1],
                 contentDescription = "Magenta",
-                modifier = Modifier.weight(1f).padding(8.dp)
+                modifier = Modifier.weight(1f).padding(4.dp)
             )
         }
-        Row {
+        Row (modifier = Modifier.weight(1f)) {
             Image(
                 bitmap = state.value.cmykImages[2],
                 contentDescription = "Yellow",
-                modifier = Modifier.weight(1f).padding(8.dp)
+                modifier = Modifier.weight(1f).padding(4.dp)
             )
             Image(
                 bitmap = state.value.cmykImages[3],
                 contentDescription = "Black",
-                modifier = Modifier.weight(1f).padding(8.dp)
+                modifier = Modifier.weight(1f).padding(4.dp)
             )
         }
     }
