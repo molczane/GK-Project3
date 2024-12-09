@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import gk_project3.composeapp.generated.resources.Res
 import kotlinx.coroutines.launch
 import molczane.gk.project3.model.BezierCurve
 import molczane.gk.project3.viewModel.RGBToCMYKViewModel
@@ -178,25 +177,25 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.update0percent() },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("0% cofnięcia", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.update100percent() },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("100% cofnięcia", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.updateUCR() },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("UCR", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.updateBCR() },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("GCR", fontSize = 9.sp)
@@ -213,19 +212,25 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                                 Text("Show all pictures", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.changeImage(openFileDialog()) },
+                                onClick = { viewModel.changeImage(openFileDialog("src/images")) },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Change picture", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.saveCurves(colorNumber(state.value.selectedColor)) },
+                                onClick = { viewModel.saveCurve(colorNumber(state.value.selectedColor)) },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Save Curve", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.loadCurves() },
+                                onClick = {
+                                    openFileDialog("src/curves")?.let {
+                                        viewModel.loadCurve(
+                                            it
+                                        )
+                                    }
+                                },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Load Curve", fontSize = 9.sp)
@@ -360,7 +365,7 @@ fun DrawScope.drawBezierCurveWithControlPoints(
 
 fun openFileDialog(defaultDirectory: String = System.getProperty("user.home")): String? {
     val fileDialog = FileDialog(null as Frame?, "Select a File", FileDialog.LOAD)
-    fileDialog.directory = "src/images" // Set the default directory
+    fileDialog.directory = defaultDirectory // Set the default directory
     fileDialog.isVisible = true
     return fileDialog.file?.let { fileDialog.directory + it }
 }

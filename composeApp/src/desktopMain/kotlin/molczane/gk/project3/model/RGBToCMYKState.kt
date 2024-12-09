@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 
 
 data class RGBToCMYKState(
-    val originalImage: ImageBitmap = loadImage("src/images/mountains.png"),
+    val originalImage: ImageBitmap,//= loadImage("src/images/mountains.png"),
     val processedImage: ImageBitmap? = null,
     val cmykImages: List<ImageBitmap> = emptyList(),
     val bezierCurves: List<BezierCurve> = emptyList(),
@@ -17,10 +17,10 @@ data class RGBToCMYKState(
     val showAllPictures: Boolean = false
 )
 
-fun RGBToCMYKState.loadImage(filePath: String): ImageBitmap {
-    val bufferedImage = ImageIO.read(File(filePath))
-    return bufferedImage.toComposeImageBitmap()
-}
+//fun RGBToCMYKState.loadImage(filePath: String): ImageBitmap {
+//    val bufferedImage = ImageIO.read(File(filePath))
+//    return bufferedImage.toComposeImageBitmap()
+//}
 
 fun loadImage(filePath: String): ImageBitmap {
     val bufferedImage = ImageIO.read(File(filePath))

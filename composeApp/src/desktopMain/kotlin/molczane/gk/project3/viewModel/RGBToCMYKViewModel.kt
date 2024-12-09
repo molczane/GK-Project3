@@ -1,6 +1,8 @@
 package molczane.gk.project3.viewModel
 
 import java.io.File
+import java.io.FileReader
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -12,12 +14,13 @@ import androidx.compose.ui.graphics.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.update
 import molczane.gk.project3.model.*
+import molczane.gk.project3.predefinedCurves.predefinedCurves
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
 class RGBToCMYKViewModel : ViewModel() {
-    private val _state = MutableStateFlow(RGBToCMYKState())
+    private val _state = MutableStateFlow(RGBToCMYKState(originalImage = loadImage("src/images/mountains.png")))
     val state: StateFlow<RGBToCMYKState> get() = _state
 
     private val bezierCurveStorage = mutableMapOf<Color, BezierCurve>()
@@ -27,6 +30,9 @@ class RGBToCMYKViewModel : ViewModel() {
 
     init {
         // Inicjalizacja przykładowych krzywych Béziera dla każdego koloru
+        _state.value = _state.value.copy(
+            originalImage = loadImage("src/images/mountains.png")
+        )
         _state.value = _state.value.copy(
             bezierCurves = initializeDefaultCurves(),
         )
@@ -97,16 +103,48 @@ class RGBToCMYKViewModel : ViewModel() {
         _state.value = _state.value.copy(processedImage = grayscaleImage)
     }
 
-    fun saveCurves(index: Int) {
+    fun saveCurve(index: Int) {
         // Zapis krzywych do mapy (symulacja zapisu do pliku)
         serializeCurvesToFile(index)
     }
 
-    fun loadCurves() {
-        // Załaduj krzywe z mapy, jeśli istnieją
-        val loadedCurve = bezierCurveStorage[_state.value.selectedColor]
-        if (loadedCurve != null) {
-            updateCurveForSelectedChannel(loadedCurve)
+    fun loadCurve(filePath: String) {
+        val (loadedCurve, index) = deserializeBezierCurveFromFilePath(filePath)
+        if (loadedCurve != null && index != null) {
+            val updatedCurves = _state.value.bezierCurves.toMutableList()
+            when(index) {
+                0 -> loadedCurve.color = Color.Cyan
+                1 -> loadedCurve.color = Color.Magenta
+                2 -> loadedCurve.color = Color.Yellow
+                3 -> loadedCurve.color = Color.Black
+            }
+            updatedCurves[index] = loadedCurve
+            _state.value = _state.value.copy(bezierCurves = updatedCurves)
+            _state.value = _state.value.copy(
+                cmykImages = convertRGBToCMYK(_state.value.originalImage, _state.value.bezierCurves)
+            )
+            updateProcessedImageFromCMYKImages()
+            when(index) {
+                0 -> runBlocking { updateCImage() }
+                1 -> updateMImage()
+                2 -> updateYImage()
+                3 -> updateKImage()
+            }
+        }
+//        if (loadedCurve != null) {
+//            updateCurveForSelectedChannel(loadedCurve)
+//        }
+    }
+    
+    private fun deserializeBezierCurveFromFilePath(filePath: String): Pair<BezierCurve?, Int?> {
+        return try {
+            val fileContent = FileReader(filePath).use { it.readText() }
+            val loadedCurve = Json.decodeFromString<BezierCurve>(fileContent)
+            val index = filePath.dropLast(5).last().toString().toIntOrNull()
+            Pair(loadedCurve, index)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Pair(null, null)
         }
     }
 
@@ -188,6 +226,40 @@ class RGBToCMYKViewModel : ViewModel() {
 
     fun showAllPictures(show: Boolean) {
         _showAllPictures.value = show
+    }
+
+    private val predefinedCurves = predefinedCurves()
+
+    fun updateBCR() {
+        _state.update { it.copy(bezierCurves = it.bezierCurves.toMutableList().apply {
+            this[colorToIndex(Color.Black)] = predefinedCurves.bcr
+        }) }
+        updateKImage()
+        updateProcessedImageFromCMYKImages()
+    }
+    
+    fun updateUCR() {
+        _state.update { it.copy(bezierCurves = it.bezierCurves.toMutableList().apply {
+            this[colorToIndex(Color.Black)] = predefinedCurves.ucr
+        }) }
+        updateKImage()
+        updateProcessedImageFromCMYKImages()
+    }
+    
+    fun update0percent() {
+        _state.update { it.copy(bezierCurves = it.bezierCurves.toMutableList().apply {
+            this[colorToIndex(Color.Black)] = predefinedCurves.percent0
+        }) }
+        updateKImage()
+        updateProcessedImageFromCMYKImages()
+    }
+    
+    fun update100percent() {
+        _state.update { it.copy(bezierCurves = it.bezierCurves.toMutableList().apply {
+            this[colorToIndex(Color.Black)] = predefinedCurves.percent100
+        }) }
+        updateKImage()
+        updateProcessedImageFromCMYKImages()
     }
 
     private fun colorToIndex(color: Color): Int {

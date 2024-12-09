@@ -10,5 +10,5 @@ import kotlinx.serialization.Serializable
 data class BezierCurve(
     val controlPoints: List<@Serializable(with = OffsetSerializer::class) Offset>, // Apply OffsetSerializer to each Offset
     @Serializable(with = ColorSerializer::class)
-    val color: Color // Apply ColorSerializer to the Color field
+    var color: Color // Apply ColorSerializer to the Color field
 )
