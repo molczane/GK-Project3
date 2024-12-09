@@ -20,7 +20,7 @@ import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
 class RGBToCMYKViewModel : ViewModel() {
-    private val _state = MutableStateFlow(RGBToCMYKState(originalImage = loadImage("src/images/mountains.png")))
+    private val _state = MutableStateFlow(RGBToCMYKState(originalImage = loadImage("src/images/mountains-3.png")))
     val state: StateFlow<RGBToCMYKState> get() = _state
 
     private val bezierCurveStorage = mutableMapOf<Color, BezierCurve>()
@@ -31,7 +31,7 @@ class RGBToCMYKViewModel : ViewModel() {
     init {
         // Inicjalizacja przykładowych krzywych Béziera dla każdego koloru
         _state.value = _state.value.copy(
-            originalImage = loadImage("src/images/mountains.png")
+            originalImage = loadImage("src/images/mountains-3.png")
         )
         _state.value = _state.value.copy(
             bezierCurves = initializeDefaultCurves(),
@@ -349,6 +349,40 @@ class RGBToCMYKViewModel : ViewModel() {
             updatedImages.add(blackImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
         }
         _state.value = _state.value.copy(cmykImages = updatedImages)
+    }
+
+    fun convertRGBtoGrayScale() {
+        val image = _state.value.originalImage
+        val width = image.width
+        val height = image.height
+
+        val imageBitmap = ImageBitmap(width, height)
+
+        val canvas = Canvas(imageBitmap)
+        val paint = Paint()
+
+        val pixelMap = image.toPixelMap()
+
+        // Iterate through all pixels
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val pixelColor = pixelMap[x, y]
+
+                // Extract RGB values
+                val r = pixelColor.red
+                val g = pixelColor.green
+                val b = pixelColor.blue
+
+                // Calculate grayscale value
+                val gray = (0.299*((r * 255).roundToInt()) + 0.587*((g * 255).roundToInt()) + 0.114*((b * 255).roundToInt())).roundToInt()
+
+                // Draw pixels on respective canvases
+                paint.color = Color(gray, gray, gray)
+                canvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+            }
+        }
+
+        _state.value = _state.value.copy(processedImage = imageBitmap)
     }
 
     fun convertRGBToCMYK(

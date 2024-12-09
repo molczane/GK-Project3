@@ -238,7 +238,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.convertRGBtoGrayScale() },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Black and White", fontSize = 9.sp)
