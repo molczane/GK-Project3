@@ -10,10 +10,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,8 +24,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import gk_project3.composeapp.generated.resources.Res
+import kotlinx.coroutines.launch
 import molczane.gk.project3.model.BezierCurve
 import molczane.gk.project3.viewModel.RGBToCMYKViewModel
+import java.awt.FileDialog
+import java.awt.Frame
 
 @Composable
 fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
@@ -55,6 +55,9 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                 ) {
                     var selectedCurve: BezierCurve? = null
                     var selectedPointIndex: Int? = null
+
+                    val coroutineScope = rememberCoroutineScope()
+
                     Canvas(
                         modifier = Modifier
                             .background(Color.LightGray)
@@ -101,7 +104,9 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                                     onDragEnd = {
                                         if (selectedCurve != null) {
                                             when (selectedCurve!!.color) {
-                                                Color.Cyan -> viewModel.updateCImage()
+                                                Color.Cyan -> coroutineScope.launch {
+                                                    viewModel.updateCImage()
+                                                }
                                                 Color.Magenta -> viewModel.updateMImage()
                                                 Color.Yellow -> viewModel.updateYImage()
                                                 Color.Black -> viewModel.updateKImage()
@@ -208,7 +213,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                                 Text("Show all pictures", fontSize = 9.sp)
                             }
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.changeImage(openFileDialog()) },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Change picture", fontSize = 9.sp)
@@ -235,7 +240,7 @@ fun RGBToCMYKApp(viewModel: RGBToCMYKViewModel) {
                             }
 
                             Button(
-                                onClick = { viewModel.convertToBlackAndWhite() },
+                                onClick = { viewModel.saveImages() },
                                 modifier = Modifier.weight(1f).padding(3.dp).fillMaxWidth()
                             ) {
                                 Text("Save pictures", fontSize = 9.sp)
@@ -341,4 +346,11 @@ fun DrawScope.drawBezierCurveWithControlPoints(
             center = absoluteOffset
         )
     }
+}
+
+fun openFileDialog(defaultDirectory: String = System.getProperty("user.home")): String? {
+    val fileDialog = FileDialog(null as Frame?, "Select a File", FileDialog.LOAD)
+    fileDialog.directory = "src/images" // Set the default directory
+    fileDialog.isVisible = true
+    return fileDialog.file?.let { fileDialog.directory + it }
 }

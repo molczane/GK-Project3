@@ -17,6 +17,11 @@ data class RGBToCMYKState(
     val showAllPictures: Boolean = false
 )
 
+fun RGBToCMYKState.loadImage(filePath: String): ImageBitmap {
+    val bufferedImage = ImageIO.read(File(filePath))
+    return bufferedImage.toComposeImageBitmap()
+}
+
 fun loadImage(filePath: String): ImageBitmap {
     val bufferedImage = ImageIO.read(File(filePath))
     return bufferedImage.toComposeImageBitmap()

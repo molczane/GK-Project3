@@ -5,10 +5,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.update
 import molczane.gk.project3.model.*
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+import kotlin.math.roundToInt
 
 class RGBToCMYKViewModel : ViewModel() {
     private val _state = MutableStateFlow(RGBToCMYKState())
@@ -29,6 +32,53 @@ class RGBToCMYKViewModel : ViewModel() {
         )
         updateProcessedImageFromCMYKImages()
     }
+
+    fun changeImage(imagePath: String?) {
+        if (imagePath != null) {
+            val newImage = loadImage(imagePath)
+            _state.value = _state.value.copy(originalImage = newImage)
+            _state.value = _state.value.copy(
+                cmykImages = convertRGBToCMYK(_state.value.originalImage, _state.value.bezierCurves)
+            )
+            updateProcessedImageFromCMYKImages()
+        }
+    }
+
+    fun saveImages() {
+        val cyanBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[0])
+        val magentaBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[1])
+        val yellowBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[2])
+        val blackBufferedImage = imageBitmapToBufferedImage(_state.value.cmykImages[3])
+        val processedBufferedImage = _state.value.processedImage?.let { imageBitmapToBufferedImage(it) }
+
+        ImageIO.write(cyanBufferedImage, "png", File("src/processedImages/cyan.png"))
+        ImageIO.write(magentaBufferedImage, "png", File("src/processedImages/magenta.png"))
+        ImageIO.write(yellowBufferedImage, "png", File("src/processedImages/yellow.png"))
+        ImageIO.write(blackBufferedImage, "png", File("src/processedImages/black.png"))
+        ImageIO.write(processedBufferedImage, "png", File("src/processedImages/processed.png"))
+    }
+
+    fun imageBitmapToBufferedImage(imageBitmap: ImageBitmap): BufferedImage {
+        val pixelMap = imageBitmap.toPixelMap()
+        val bufferedImage = BufferedImage(pixelMap.width, pixelMap.height, BufferedImage.TYPE_INT_ARGB)
+
+        for (x in 0 until pixelMap.width) {
+            for (y in 0 until pixelMap.height) {
+                val color = pixelMap[x, y]
+                val alpha = (color.alpha * 255).roundToInt()
+                val red = (color.red * 255).roundToInt()
+                val green = (color.green * 255).roundToInt()
+                val blue = (color.blue * 255).roundToInt()
+
+                val argb = (alpha shl 24) or (red shl 16) or (green shl 8) or blue
+                bufferedImage.setRGB(x, y, argb)
+            }
+        }
+
+        return bufferedImage
+    }
+
+
 
     fun selectColor(color: Color) {
         _state.value = _state.value.copy(selectedColor = color)
@@ -171,7 +221,7 @@ class RGBToCMYKViewModel : ViewModel() {
         )
     }
 
-    fun updateCImage() {
+    suspend fun updateCImage() {
         val cyanImage = convertRGBToCMYKCyan(_state.value.originalImage, _state.value.bezierCurves)
         val updatedImages = _state.value.cmykImages.toMutableList()
         if (updatedImages.isNotEmpty()) {
@@ -179,6 +229,7 @@ class RGBToCMYKViewModel : ViewModel() {
         } else {
             updatedImages.add(cyanImage) // Dodanie obrazu Cyan, jeśli lista jest pusta
         }
+        _state.update { it.copy(cmykImages = updatedImages) }
         _state.value = _state.value.copy(cmykImages = updatedImages)
     }
 
@@ -489,7 +540,7 @@ class RGBToCMYKViewModel : ViewModel() {
         _state.value = _state.value.copy(processedImage = imageBitmap)
     }
 
-    fun convertRGBToCMYKCyan(
+    suspend fun convertRGBToCMYKCyan(
         image: ImageBitmap,
         bezierCurves: List<BezierCurve>
     ): ImageBitmap {
@@ -501,13 +552,13 @@ class RGBToCMYKViewModel : ViewModel() {
         val pixelMap = image.toPixelMap()
 
         // Define the number of parallel tasks
-        val numTasks = Runtime.getRuntime().availableProcessors()
+        val numTasks = 100
         val chunkSize = height / numTasks
 
         val canvas = Canvas(cyanBitmap)
         val paint = Paint()
 
-        runBlocking {
+        coroutineScope {
             (0 until numTasks).map { taskIndex ->
                 async {
                     val startY = taskIndex * chunkSize
